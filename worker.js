@@ -1,7 +1,8 @@
 export default {async fetch(request,env){
-const reply=d=>Response.json({app:"CORY HYPE TURBO",version:3,...d},{headers:{"Cache-Control":"no-store"}});
-let key=String(env.PYTH_API_KEY||"").trim().replace(/^Bearer\s+/i,"");
-if(!key||/\s/.test(key)||/[^\x21-\x7e]/.test(key))return reply({connected:false,error:"Secret must contain only the raw API key"});
+const reply=d=>Response.json({app:"CORY HYPE TURBO",version:4,...d},{headers:{"Cache-Control":"no-store"}});
+let key=String(env.PYTH_API_KEY||"").trim().replace(/^Bearer\s+/i,"").replace(/^["']|["']$/g,"").replace(/[\u200B-\u200D\uFEFF]/g,"").replace(/\s+/g,"");
+if(!key)return reply({connected:false,error:"PYTH_API_KEY missing"});
+if(/[^\x21-\x7e]/.test(key)||!key.startsWith("pyth_"))return reply({connected:false,error:"Unexpected secret format",keyPresent:true});
 const base="https://pyth.dourolabs.app/v1";
 async function probe(path,auth=false){try{const r=await fetch(base+path,{headers:auth?{Authorization:"Bearer "+key}:{},redirect:"manual",signal:AbortSignal.timeout(8000)});let d;try{d=await r.json()}catch{}return {status:r.status,data:d};}catch(e){return {error:e.name==="TimeoutError"?"Timeout": "Transport failure"};}}
 const now=Math.floor(Date.now()/1000);
