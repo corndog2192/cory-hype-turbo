@@ -9,3 +9,7 @@ database_id = "f9c955f3-06de-4e0b-9074-7280b6d5eb2a"
 
 [triggers]
 crons = ["* * * * *"]
+
+[observability.logs]
+enabled = true
+invocation_logs = true
