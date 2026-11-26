@@ -1,16 +1,13 @@
-export default {
- async fetch(request, env) {
- const reply=(data)=>Response.json({app:"CORY HYPE TURBO",version:2,...data},{headers:{"Cache-Control":"no-store"}});
- if(!env.PYTH_API_KEY)return reply({connected:false,error:"Missing PYTH_API_KEY"});
- const now=Math.floor(Date.now()/1000);
- const url=new URL("https://pyth.dourolabs.app/v1/fixed_rate@1000ms/history");
- for(const [k,v] of Object.entries({symbol:"Crypto.HYPE/USD",resolution:"1",from:now-3600,to:now}))url.searchParams.set(k,String(v));
- let r;
- try{r=await fetch(url,{headers:{Authorization:"Bearer "+env.PYTH_API_KEY},redirect:"manual"});}catch{return reply({connected:false,error:"Network request failed"});}
- const status=r.status;
- let d;
- try{d=await r.json();}catch{return reply({connected:false,status,error:"Non-JSON response",contentType:r.headers.get("content-type")});}
- const connected=r.ok&&d.s==="ok"&&Array.isArray(d.c)&&d.c.length>0;
- return reply({connected,status,feedStatus:["ok","no_data","error"].includes(d.s)?d.s:null,price:connected?Number(d.c.at(-1)).toFixed(4):null,candles:connected?d.c.length:0,lastTimestamp:connected?d.t?.at(-1):null,error:connected?null:"Feed unavailable or unexpected response"});
- }
-};
+export default {async fetch(request,env){
+const reply=d=>Response.json({app:"CORY HYPE TURBO",version:3,...d},{headers:{"Cache-Control":"no-store"}});
+let key=String(env.PYTH_API_KEY||"").trim().replace(/^Bearer\s+/i,"");
+if(!key||/\s/.test(key)||/[^\x21-\x7e]/.test(key))return reply({connected:false,error:"Secret must contain only the raw API key"});
+const base="https://pyth.dourolabs.app/v1";
+async function probe(path,auth=false){try{const r=await fetch(base+path,{headers:auth?{Authorization:"Bearer "+key}:{},redirect:"manual",signal:AbortSignal.timeout(8000)});let d;try{d=await r.json()}catch{}return {status:r.status,data:d};}catch(e){return {error:e.name==="TimeoutError"?"Timeout": "Transport failure"};}}
+const now=Math.floor(Date.now()/1000);
+const q="?symbol=Crypto.HYPE%2FUSD&resolution=1&from="+(now-3600)+"&to="+now;
+const channels=["fixed_rate@1000ms","fixed_rate@200ms","real_time"];
+const results=await Promise.all([probe("/live"),...channels.map(c=>probe("/"+c+"/history"+q,true))]);
+const checks=channels.map((c,i)=>{const r=results[i+1],d=r.data;const ok=r.status===200&&d?.s==="ok"&&Array.isArray(d.c)&&d.c.length>0;return {channel:c,status:r.status??null,error:r.error??null,connected:ok,price:ok?Number(d.c.at(-1)).toFixed(4):null,lastTimestamp:ok?d.t?.at(-1):null};});
+return reply({connected:checks.some(c=>c.connected),health:results[0].status??results[0].error,checks});
+}};
