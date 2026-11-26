@@ -1,3 +1,11 @@
 name = "cory-hype-turbo"
 main = "worker.js"
 compatibility_date = "2026-11-25"
+
+[[d1_databases]]
+binding = "TURBO_DB"
+database_name = "cory-turbo-history"
+database_id = "f9c955f3-06de-4e0b-9074-7280b6d5eb2a"
+
+[triggers]
+crons = ["* * * * *"]
