@@ -13,3 +13,7 @@ crons = ["* * * * *"]
 [observability.logs]
 enabled = true
 invocation_logs = true
+
+[[services]]
+binding = "KALSHI_DATA"
+service = "hype-paper-terminal"
